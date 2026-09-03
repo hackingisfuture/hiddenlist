@@ -1,8 +1,8 @@
-# poctabaahimohsin
+# hiddenlist
 
 Static host for proof-of-concept pages used in **authorised** security testing.
 
-Published at: `https://hackingisfuture.github.io/poctabaahimohsin/`
+Published at: `https://hackingisfuture.github.io/hiddenlist/`
 
 ## Layout
 
