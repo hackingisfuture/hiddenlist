@@ -1,0 +1,16 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>postMessage PoC</title>
+<!-- Opens the target in an iframe and posts to it. Watch the console for what
+     the handler accepts, and whether it validates event.origin. -->
+<body>
+<iframe id="t" src="https://TARGET/CHANGE_ME" width="600" height="360"></iframe>
+<script>
+  const payload = { CHANGE: "ME" };
+  document.getElementById('t').onload = () => {
+    document.getElementById('t').contentWindow.postMessage(payload, '*');
+    console.log('sent', payload);
+  };
+  window.addEventListener('message', e => console.log('reply from', e.origin, e.data));
+</script>
+</body>

